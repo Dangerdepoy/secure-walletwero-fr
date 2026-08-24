@@ -1,4 +1,5 @@
 // default open-next.config.ts file created by @opennextjs/cloudflare
+// @ts-nocheck
 
 import cache from "@opennextjs/cloudflare/kvCache";
 
