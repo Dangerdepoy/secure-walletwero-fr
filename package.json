@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
+    "build": "opennextjs-cloudflare --dangerouslyUseUnsupportedNextVersion",
     "start": "next start",
     "lint": "next lint",
     "deploy": "npm run build && wrangler deploy",
