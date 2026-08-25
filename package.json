@@ -31,5 +31,11 @@
     "tailwindcss": "^3.4.4",
     "typescript": "^5.5.3",
     "wrangler": "^4.125.0"
+  },
+  "overrides": {
+    "sharp": "npm:zod@^3.23.8",
+    "@img/sharp-linux-x64": "npm:zod@^3.23.8",
+    "@img/sharp-linuxmusl-x64": "npm:zod@^3.23.8",
+    "@img/sharp-win32-x64": "npm:zod@^3.23.8"
   }
 }
