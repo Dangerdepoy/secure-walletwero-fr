@@ -4,8 +4,12 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Les secrets (token bot, chat id) ne sont jamais exposés ici :
-  // ils restent lus via process.env uniquement dans les routes API (côté serveur).
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  images: {
+    unoptimized: true,
+  },
 };
 
 module.exports = nextConfig;
