@@ -1,8 +1,9 @@
 // default open-next.config.ts file created by @opennextjs/cloudflare
 // @ts-nocheck
 
-import cache from "@opennextjs/cloudflare/overrides/incremental-cache/kv-incremental-cache";
+import { defineCloudflareConfig } from "@opennextjs/cloudflare";
 
+export default defineCloudflareConfig({});
 const config = {
   default: {
     override: {
