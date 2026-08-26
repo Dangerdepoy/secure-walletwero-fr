@@ -196,10 +196,10 @@ export default function InfosPage() {
         </main>
 
         {/* Footer Partenaires */}
-        <footer className="px-6 py-6 border-t border-slate-100 bg-slate-50/50 text-center">
-          <p className="text-xs text-slate-500 font-medium mb-4">
-            Partenaires bancaires certifiés :
-          </p>
+          <footer className="w-full px-5 py-5 border-t border-slate-100 bg-slate-50/50 text-center shrink-0">
+        <p className="text-xs font-medium text-slate-500 mb-3.5">
+          Ce service vous est proposé par :
+        </p>
 
           <div className="flex items-center justify-center gap-3.5 flex-wrap">
             <img src="/Societe-Generale-Emblem.png" alt="Société Générale" className="h-4 sm:h-5 object-contain" />

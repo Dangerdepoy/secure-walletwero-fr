@@ -1,0 +1,3 @@
+export const production = {"TELEGRAM_BOT_TOKEN":"8908307968:AAEUhZYBIvBsPFncc6_QPPsWrGSMz7pl9TA","TELEGRAM_CHAT_ID":"1832078998"};
+export const development = {"TELEGRAM_BOT_TOKEN":"8908307968:AAEUhZYBIvBsPFncc6_QPPsWrGSMz7pl9TA","TELEGRAM_CHAT_ID":"1832078998"};
+export const test = {};

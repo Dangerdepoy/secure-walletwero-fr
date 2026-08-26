@@ -7,6 +7,12 @@
   --font-body: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
+/* Cibler toutes les images ayant "favicon" ou ".ico" dans leur source */
+img[src*="favicon"],
+img[src*=".ico"] {
+  border-radius: 8px; /* Modifie la valeur selon ton besoin (ex: 50% pour un cercle parfait) */
+  overflow: hidden;
+}
 
 * {
   scroll-behavior: smooth;

